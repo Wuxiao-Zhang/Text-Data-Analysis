@@ -135,10 +135,8 @@
                 .domain([0, d3.max(data, d => d.num)]).nice()
                 .range([height - margin.bottom, margin.top]);
 
-            // 清除之前的柱状图和轴
-            svg.selectAll(".bar").remove();
+            // 清除之前的轴
             svg.selectAll(".axis").remove();
-            svg.selectAll(".value-label").remove();
 
             // 添加 x 轴
             svg.append("g")
@@ -157,25 +155,61 @@
                 .attr("class", "axis")
                 .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format("d")));
 
-            // 添加柱状图条
-            svg.selectAll(".bar")
-                .data(data)
-                .join("rect")
-                .attr("class", "bar")
-                .attr("x", d => x(d.name))
-                .attr("y", d => y(d.num))
-                .attr("height", d => y(0) - y(d.num))
-                .attr("width", x.bandwidth());
+            // 添加或更新柱状图条，带动画效果
+            const bars = svg.selectAll(".bar")
+                .data(data, d => d.name);
 
-            // 添加数值标签
-            svg.selectAll(".value-label")
-                .data(data)
-                .join("text")
-                .attr("class", "value-label")
-                .attr("x", d => x(d.name) + x.bandwidth() / 2)
-                .attr("y", d => y(d.num) - 5)
-                .attr("text-anchor", "middle")
-                .text(d => d.num);
+            bars.join(
+                enter => enter.append("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.name))
+                    .attr("y", y(0))
+                    .attr("height", 0)  // 初始高度为0
+                    .attr("width", x.bandwidth())
+                    .transition()
+                    .duration(750)
+                    .attr("y", d => y(d.num))
+                    .attr("height", d => y(0) - y(d.num)),
+
+                update => update.transition()
+                    .duration(750)
+                    .attr("x", d => x(d.name))
+                    .attr("y", d => y(d.num))
+                    .attr("height", d => y(0) - y(d.num)),
+
+                exit => exit.transition()
+                    .duration(750)
+                    .attr("y", y(0))
+                    .attr("height", 0)
+                    .remove()
+            );
+
+            // 添加或更新数值标签，带动画效果
+            const labels = svg.selectAll(".value-label")
+                .data(data, d => d.name);
+
+            labels.join(
+                enter => enter.append("text")
+                    .attr("class", "value-label")
+                    .attr("x", d => x(d.name) + x.bandwidth() / 2)
+                    .attr("y", y(0))
+                    .attr("text-anchor", "middle")
+                    .text(d => d.num)
+                    .transition()
+                    .duration(750)
+                    .attr("y", d => y(d.num) - 5),
+
+                update => update.transition()
+                    .duration(750)
+                    .attr("x", d => x(d.name) + x.bandwidth() / 2)
+                    .attr("y", d => y(d.num) - 5)
+                    .text(d => d.num),
+
+                exit => exit.transition()
+                    .duration(750)
+                    .attr("y", y(0))
+                    .remove()
+            );
         }).catch(error => console.error(`无法加载${groupName}.csv文件:`, error));
     }
 </script>
